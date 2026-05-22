@@ -1,0 +1,90 @@
+# RavenX-Sec Training Configuration
+# Base model: Qwen3-8B via Unsloth + QLoRA
+# Hardware: RTX 3090 (24 GB VRAM) on Star Platinum Linux rig
+
+base_model: "Qwen/Qwen3-8B"
+evaluation_model: "GLM-5.1"  # Judge model on M4 Max
+
+quantization:
+  bits: 4
+  type: "nf4"
+  double_quant: true
+  compute_dtype: "bfloat16"
+
+lora:
+  rank: 64
+  alpha: 128
+  dropout: 0.05
+  target_modules:
+    - "q_proj"
+    - "k_proj"
+    - "v_proj"
+    - "o_proj"
+    - "gate_proj"
+    - "up_proj"
+    - "down_proj"
+
+training:
+  learning_rate: 2.0e-4
+  batch_size: 4
+  gradient_accumulation_steps: 8
+  effective_batch_size: 32
+  epochs: 3
+  max_seq_len: 8192
+  warmup_ratio: 0.03
+  weight_decay: 0.01
+  optimizer: "adamw_8bit"
+  scheduler: "cosine"
+  max_grad_norm: 1.0
+  fp16: false
+  bf16: true
+  gradient_checkpointing: true
+
+data:
+  train_split: 0.9
+  eval_split: 0.1
+  seed: 42
+  format: "chatml"  # Qwen3 native format
+  max_samples: null  # Use all data
+
+  sources:
+    offensive:
+      - "data/offensive/privesc_chains/"
+      - "data/offensive/web_pentest/"
+      - "data/offensive/api_testing/"
+      - "data/offensive/exploit_pocs/"
+    defensive:
+      - "data/defensive/cve_fixes/"
+      - "data/defensive/hardening/"
+      - "data/defensive/compliance/"
+    analytical:
+      - "data/analytical/cvss_vectors/"
+      - "data/analytical/frameworks/"
+      - "data/analytical/attack_mapping/"
+    synthetic:
+      - "data/synthetic/"
+    world_model:
+      - "data/world_model/"
+
+output:
+  model_dir: "models/checkpoints/ravenx-sec-v0.1"
+  hub_model_id: "DeadByDawn101/RavenX-Sec-8B"
+  push_to_hub: false  # Manual push after validation
+
+lewm:
+  enabled: true
+  encoder_params: "5M"
+  predictor_params: "10M"
+  sigreg_lambda: 0.1
+  sigreg_projections: 1024
+  trajectory_length: 16
+  checkpoint_dir: "models/checkpoints/lewm-security-v0.1"
+
+evaluation:
+  benchmarks:
+    - "xbow_lite"      # Subset of XBOW security benchmark
+    - "cvss_scoring"   # CVSS vector generation accuracy
+    - "remediation"    # Fix correctness evaluation
+    - "compliance"     # Framework mapping accuracy
+  judge_model: "GLM-5.1"
+  judge_prompt: "Evaluate the security finding for accuracy, completeness, and actionability."

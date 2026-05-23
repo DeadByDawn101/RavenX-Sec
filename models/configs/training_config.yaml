@@ -65,6 +65,19 @@ data:
       - "data/synthetic/"
     world_model:
       - "data/world_model/"
+    distilled:
+      - name: "WithinUsAI/claude_mythos_distilled_25k"
+        source: "huggingface"
+        split: "train"
+        categories:
+          - "cybersecurity"       # Primary: exploit chains, defense roadmaps
+          - "advanced_coding"     # Memory-safe impls, formal verification
+          - "agentic_planning"    # Autonomous agent architectures
+          - "mathematical_reasoning"
+          - "scientific_analysis"
+          - "general_expert_qa"
+        format: "messages"        # [{role, content}, ...] pairs
+        license: "Apache-2.0"
 
 output:
   model_dir: "models/checkpoints/ravenx-sec-v0.1"

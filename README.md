@@ -125,6 +125,12 @@ CVSS v3.1/v4.0 • NIST CSF 2.0 • ISO 27001 • PCI DSS v4.0 • HIPAA • SOX
 | Incident response timelines | Compromise → detection → containment → recovery chains |
 | Remediation tracking (POA&M) | Fix applied → verification → closure trajectories |
 
+### Distilled Intelligence (Pre-trained Reasoning Patterns)
+
+| Source | What We Extract |
+|--------|----------------|
+| [claude_mythos_distilled_25k](https://huggingface.co/datasets/WithinUsAI/claude_mythos_distilled_25k) | 25K high-quality distilled examples across 6 categories — cybersecurity (exploit chains, supply-chain attacks, model poisoning, detection-as-code), advanced coding (memory-safe implementations, formal verification, SIMD), agentic planning (autonomous agent architectures, self-critique loops), mathematical reasoning, scientific analysis. Apache-2.0 licensed. |
+
 ## Training Pipeline
 
 ### Phase 1: Data Curation & Synthesis
@@ -227,6 +233,7 @@ RavenX-Sec/
 | [Jackrong LLM fine-tuning guide](https://github.com/DeadByDawn101/Jackrong-llm-finetuning-guide) | SFT pipeline | — |
 | [MOOSE-Star](https://github.com/ZonglinY/MOOSE-Star) | ICML 2026 training methodology | — |
 | [LeWorldModel](https://arxiv.org/abs/2603.19312) | JEPA world model from pixels | — |
+| [claude_mythos_distilled_25k](https://huggingface.co/datasets/WithinUsAI/claude_mythos_distilled_25k) | 25K distilled examples: cybersecurity, advanced coding, agentic planning, math reasoning, scientific analysis | Apache-2.0 |
 
 ## References
 

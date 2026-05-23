@@ -200,19 +200,27 @@ def train():
 
     ADAPTER_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Write LoRA config
-    lora_config_path = ADAPTER_DIR / "lora_config.json"
+    # Write LoRA config YAML for mlx_lm
+    lora_config_path = ADAPTER_DIR / "lora_config.yaml"
+    config_content = f"""# RavenX-Sec LoRA Configuration
+fine_tune_type: lora
+num_layers: {LORA_CONFIG["num_layers"]}
+lora_parameters:
+  rank: {LORA_CONFIG["rank"]}
+  alpha: {LORA_CONFIG["alpha"]}
+  dropout: {LORA_CONFIG["dropout"]}
+  scale: {LORA_CONFIG["scale"]}
+"""
     with open(lora_config_path, "w") as f:
-        json.dump(LORA_CONFIG, f, indent=2)
+        f.write(config_content)
 
     cmd = [
-        sys.executable, "-m", "mlx_lm.lora",
+        sys.executable, "-m", "mlx_lm", "lora",
         "--model", BASE_MODEL,
         "--data", str(DATA_DIR),
         "--train",
         "--batch-size", str(TRAIN_CONFIG["batch_size"]),
-        "--lora-layers", str(LORA_CONFIG["num_layers"]),
-        "--lora-rank", str(LORA_CONFIG["rank"]),
+        "--num-layers", str(LORA_CONFIG["num_layers"]),
         "--iters", str(TRAIN_CONFIG["iters"]),
         "--val-batches", str(TRAIN_CONFIG["val_batches"]),
         "--learning-rate", str(TRAIN_CONFIG["learning_rate"]),
@@ -221,6 +229,7 @@ def train():
         "--save-every", str(TRAIN_CONFIG["save_every"]),
         "--max-seq-length", str(TRAIN_CONFIG["max_seq_length"]),
         "--adapter-path", str(ADAPTER_DIR),
+        "-c", str(lora_config_path),
     ]
 
     if TRAIN_CONFIG["grad_checkpoint"]:
@@ -240,7 +249,7 @@ def fuse():
     FUSED_DIR.mkdir(parents=True, exist_ok=True)
 
     cmd = [
-        sys.executable, "-m", "mlx_lm.fuse",
+        sys.executable, "-m", "mlx_lm", "fuse",
         "--model", BASE_MODEL,
         "--adapter-path", str(ADAPTER_DIR),
         "--save-path", str(FUSED_DIR),

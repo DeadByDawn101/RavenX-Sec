@@ -2,7 +2,8 @@
 # Base model: Qwen3-8B via Unsloth + QLoRA
 # Hardware: RTX 3090 (24 GB VRAM) on Star Platinum Linux rig
 
-base_model: "Qwen/Qwen3-8B"
+base_model: "georgehenney/Qwen3-8B-heretic"
+base_model_gguf: "mradermacher/Qwen3-8B-heretic-i1-GGUF"  # For inference on M4 Max
 evaluation_model: "GLM-5.1"  # Judge model on M4 Max
 
 quantization:

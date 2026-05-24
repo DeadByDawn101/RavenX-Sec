@@ -80,6 +80,64 @@ data:
         format: "messages"        # [{role, content}, ...] pairs
         license: "Apache-2.0"
 
+    # ── Agentic Coding (v0.3+) ──────────────────────────────────────────
+    agentic:
+      - name: "WithinUsAI/AgentAngel_100k"
+        source: "huggingface"
+        splits: ["qa", "instruct", "thinking", "reasoning", "chat"]
+        total_rows: 500000
+        format: "jsonl"
+        license: "CC0-1.0"
+        notes: "Agentic coding with evidence sources, plan→patch→verify→iterate"
+
+    # ── Real Vulnerability Patches (CVE Fix Commits) ────────────────────
+    vuln_patches:
+      - name: "JetBrains-Research/commit-chronicle"
+        source: "huggingface"
+        notes: "Millions of Git commits with code diffs, filter for security patches"
+        usage: "Extract security-tagged commits, CVE-mentioning messages"
+
+      - name: "bigcode/commitpack"
+        source: "huggingface"
+        notes: "Billions of tokens of code changes across 300+ languages"
+        usage: "Keyword/regex filter for security fix patterns"
+
+      - name: "ByteDance/PatchEval"
+        source: "huggingface"
+        notes: "1000 real-world vulnerabilities, 65 CWE categories, raw patch diffs"
+        usage: "Gold-standard CVE→patch pairs with executable validation"
+
+    # ── Security-Focused Code (CWE Examples & OWASP) ────────────────────
+    security_code:
+      - name: "bigcode/vuln-eval"
+        source: "huggingface"
+        notes: "Evaluate model capacity to recognize, isolate, and repair vulnerabilities"
+
+      - name: "Fraser/cwe-benchmark"
+        source: "huggingface"
+        notes: "Source code mapped to CWE IDs, vulnerable vs secure counterparts"
+
+    # ── Infrastructure Hardening Scripts ─────────────────────────────────
+    hardening:
+      - name: "bigcode/the-stack-v2"
+        source: "huggingface"
+        notes: "Filter by extension: .yml/.yaml (Ansible), .tf/.hcl (Terraform), .sh (Shell)"
+        usage: "Extract infrastructure-as-code with security baselines"
+
+      - name: "codeparrot/github-code"
+        source: "huggingface"
+        notes: "Massive GitHub sweep, segment by language for IaC security files"
+
+    # ── Pentest Tool Code ────────────────────────────────────────────────
+    pentest_code:
+      - name: "HackerSignal Threat Intel Dataset"
+        source: "huggingface"
+        notes: "Historical cybersecurity docs, exploit scripts, PoCs linked to CVE lifecycle"
+
+      - name: "isek/cybersecurity-instructions"
+        source: "huggingface"
+        notes: "Instruction-tuning with adversarial examples, RE walkthroughs, security scripting"
+
 output:
   model_dir: "models/checkpoints/ravenx-sec-v0.1"
   hub_model_id: "DeadByDawn101/RavenX-Sec-8B"

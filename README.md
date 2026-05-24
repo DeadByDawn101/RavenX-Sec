@@ -131,6 +131,41 @@ CVSS v3.1/v4.0 • NIST CSF 2.0 • ISO 27001 • PCI DSS v4.0 • HIPAA • SOX
 |--------|----------------|
 | [claude_mythos_distilled_25k](https://huggingface.co/datasets/WithinUsAI/claude_mythos_distilled_25k) | 25K high-quality distilled examples across 6 categories — cybersecurity (exploit chains, supply-chain attacks, model poisoning, detection-as-code), advanced coding (memory-safe implementations, formal verification, SIMD), agentic planning (autonomous agent architectures, self-critique loops), mathematical reasoning, scientific analysis. Apache-2.0 licensed. |
 
+### Agentic Coding (Plan → Patch → Verify → Iterate)
+
+| Source | What We Extract |
+|--------|----------------|
+| [WithinUsAI/AgentAngel_100k](https://huggingface.co/datasets/WithinUsAI/AgentAngel_100k) | 500K rows across 5 splits (Q&A, instruct, thinking, reasoning, chat). Evidence-backed agentic coding with verification checks. CC0-1.0 licensed. |
+
+### Real Vulnerability Patches (CVE Fix Commits)
+
+| Source | What We Extract |
+|--------|----------------|
+| [JetBrains-Research/commit-chronicle](https://huggingface.co/datasets/JetBrains-Research/commit-chronicle) | Millions of Git commits with code diffs, message histories, filters for security patches |
+| [bigcode/commitpack](https://huggingface.co/datasets/bigcode/commitpack) | Billions of tokens of code changes across 300+ languages, keyword/regex-matched fix patterns |
+| [ByteDance/PatchEval](https://huggingface.co/datasets/ByteDance/PatchEval) | 1,000 real-world vulnerabilities, 65 CWE categories, raw patch diffs with executable validation |
+
+### Security-Focused Code (CWE Examples & OWASP Patterns)
+
+| Source | What We Extract |
+|--------|----------------|
+| [bigcode/vuln-eval](https://huggingface.co/datasets/bigcode/vuln-eval) | Evaluate capacity to recognize, isolate, and repair classic vulnerabilities |
+| [Fraser/cwe-benchmark](https://huggingface.co/datasets/Fraser/cwe-benchmark) | Source code mapped to CWE IDs — vulnerable syntax vs secure counterparts |
+
+### Infrastructure Hardening Scripts
+
+| Source | What We Extract |
+|--------|----------------|
+| [bigcode/the-stack-v2](https://huggingface.co/datasets/bigcode/the-stack-v2) | Filter by .yml/.yaml (Ansible), .tf/.hcl (Terraform), .sh (Shell) for IaC security baselines |
+| [codeparrot/github-code](https://huggingface.co/datasets/codeparrot/github-code) | Massive GitHub sweep, segmentable by language for production infrastructure-as-code |
+
+### Pentest Tool Code
+
+| Source | What We Extract |
+|--------|----------------|
+| [HackerSignal Threat Intel](https://huggingface.co/datasets?search=hackersignal) | Historical cybersecurity docs, exploit scripts, PoCs linked to CVE lifecycle |
+| [isek/cybersecurity-instructions](https://huggingface.co/datasets/isek/cybersecurity-instructions) | Instruction-tuning with adversarial examples, RE walkthroughs, security scripting |
+
 ## Training Pipeline
 
 ### Phase 1: Data Curation & Synthesis

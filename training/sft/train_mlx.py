@@ -42,26 +42,27 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 TRAIN_FILE = DATA_DIR / "train.jsonl"
 VALID_FILE = DATA_DIR / "valid.jsonl"
-ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora"
-FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused"
+ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v02"
+FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v02"
 
 # Training hyperparameters (optimized for M4 Max 128GB)
+# v0.2: Conservative settings to prevent output layer destabilization
 LORA_CONFIG = {
-    "num_layers": 16,          # Number of layers to apply LoRA to
-    "rank": 64,                # LoRA rank
-    "alpha": 128,              # LoRA alpha (2x rank for stable training)
-    "dropout": 0.05,           # LoRA dropout
+    "num_layers": 8,           # Fewer layers = more stable (was 16)
+    "rank": 16,                # Lower rank = gentler adaptation (was 64)
+    "alpha": 32,               # 2x rank for stable training (was 128)
+    "dropout": 0.1,            # Higher dropout for regularization (was 0.05)
     "scale": 10.0,             # LoRA scale
 }
 
 TRAIN_CONFIG = {
-    "learning_rate": 2e-4,
+    "learning_rate": 1e-5,     # 20x lower LR prevents corruption (was 2e-4)
     "batch_size": 4,
-    "iters": 1000,             # Training iterations
+    "iters": 500,              # Fewer iters with lower LR (was 1000)
     "val_batches": 25,         # Validation batches
     "steps_per_report": 10,    # Report every N steps
     "steps_per_eval": 100,     # Evaluate every N steps
-    "save_every": 200,         # Save checkpoint every N steps
+    "save_every": 100,         # Save more frequently (was 200)
     "max_seq_length": 4096,    # Max sequence length
     "grad_checkpoint": True,   # Gradient checkpointing for memory efficiency
 }

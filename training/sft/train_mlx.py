@@ -36,33 +36,34 @@ from pathlib import Path
 BASE_MODEL = "georgehenney/Qwen3-8B-heretic"
 GGUF_MODEL = "mradermacher/Qwen3-8B-heretic-i1-GGUF"
 MYTHOS_DATASET = "WithinUsAI/claude_mythos_distilled_25k"
+AGENT_DATASET = "WithinUsAI/AgentAngel_100k"
 
 # Paths
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 TRAIN_FILE = DATA_DIR / "train.jsonl"
 VALID_FILE = DATA_DIR / "valid.jsonl"
-ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v02"
-FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v02"
+ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v03"
+FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v03"
 
 # Training hyperparameters (optimized for M4 Max 128GB)
-# v0.2: Conservative settings to prevent output layer destabilization
+# v0.3: Proven conservative base from v0.2 + slightly more capacity
 LORA_CONFIG = {
-    "num_layers": 8,           # Fewer layers = more stable (was 16)
-    "rank": 16,                # Lower rank = gentler adaptation (was 64)
-    "alpha": 32,               # 2x rank for stable training (was 128)
-    "dropout": 0.1,            # Higher dropout for regularization (was 0.05)
+    "num_layers": 8,           # Stable at 8 (proven in v0.2)
+    "rank": 32,                # Bump from 16 → 32 for more capacity
+    "alpha": 64,               # 2x rank
+    "dropout": 0.1,            # Regularization (proven in v0.2)
     "scale": 10.0,             # LoRA scale
 }
 
 TRAIN_CONFIG = {
-    "learning_rate": 1e-5,     # 20x lower LR prevents corruption (was 2e-4)
+    "learning_rate": 1e-5,     # Proven stable in v0.2
     "batch_size": 4,
-    "iters": 500,              # Fewer iters with lower LR (was 1000)
+    "iters": 750,              # More iters for larger dataset (was 500)
     "val_batches": 25,         # Validation batches
     "steps_per_report": 10,    # Report every N steps
     "steps_per_eval": 100,     # Evaluate every N steps
-    "save_every": 100,         # Save more frequently (was 200)
+    "save_every": 150,         # Save checkpoints
     "max_seq_length": 4096,    # Max sequence length
     "grad_checkpoint": True,   # Gradient checkpointing for memory efficiency
 }
@@ -86,9 +87,9 @@ def download_model():
 
 
 def prepare_data():
-    """Prepare training data from the Mythos dataset + security data."""
+    """Prepare training data from Mythos + AgentAngel + local security data."""
     print("=" * 60)
-    print("Step 2: Preparing training data")
+    print("Step 2: Preparing training data (v0.3)")
     print("=" * 60)
 
     try:
@@ -98,41 +99,72 @@ def prepare_data():
         subprocess.run([sys.executable, "-m", "pip", "install", "datasets"], check=True)
         from datasets import load_dataset
 
-    # Load the Mythos distilled dataset
-    print(f"Loading {MYTHOS_DATASET}...")
+    import random
+    random.seed(42)
+
+    # ── Load Mythos distilled dataset ──────────────────────────────────
+    print(f"\n[1/2] Loading {MYTHOS_DATASET}...")
     ds = load_dataset(MYTHOS_DATASET, split="train")
     print(f"Loaded {len(ds)} examples")
 
-    # Filter for security-relevant categories
     security_categories = ["cybersecurity", "advanced_coding", "agentic_planning"]
-    all_categories = set()
-
-    all_examples = []
     security_examples = []
     other_examples = []
 
     for item in ds:
         category = item.get("category", "unknown")
-        all_categories.add(category)
-
-        # Convert to MLX chat format
         messages = item.get("messages", [])
         if len(messages) >= 2:
-            example = {
-                "messages": messages
-            }
-            all_examples.append(example)
-
+            example = {"messages": messages}
             if category in security_categories:
                 security_examples.append(example)
             else:
                 other_examples.append(example)
 
-    print(f"Categories found: {all_categories}")
-    print(f"Security-relevant examples: {len(security_examples)}")
-    print(f"Other examples: {len(other_examples)}")
+    print(f"  Security-relevant: {len(security_examples)}")
+    print(f"  Other: {len(other_examples)}")
 
-    # Load any local security training data
+    # ── Load AgentAngel dataset ────────────────────────────────────────
+    print(f"\n[2/2] Loading {AGENT_DATASET}...")
+    agent_examples = []
+    try:
+        agent_ds = load_dataset(AGENT_DATASET, split="train")
+        print(f"Loaded {len(agent_ds)} AgentAngel examples")
+
+        for item in agent_ds:
+            # AgentAngel has multiple formats — handle each
+            messages = item.get("messages", [])
+            if messages and len(messages) >= 2:
+                agent_examples.append({"messages": messages})
+                continue
+
+            # Try instruction format
+            instruction = item.get("instruction", "")
+            output = item.get("output", "")
+            if instruction and output:
+                msgs = [
+                    {"role": "user", "content": instruction},
+                    {"role": "assistant", "content": output}
+                ]
+                agent_examples.append({"messages": msgs})
+                continue
+
+            # Try Q&A format
+            question = item.get("question", "")
+            answer = item.get("answer", "")
+            if question and answer:
+                msgs = [
+                    {"role": "user", "content": question},
+                    {"role": "assistant", "content": answer}
+                ]
+                agent_examples.append({"messages": msgs})
+
+        print(f"  Converted {len(agent_examples)} AgentAngel examples to chat format")
+    except Exception as e:
+        print(f"  Warning: Could not load AgentAngel: {e}")
+        print(f"  Continuing with Mythos data only")
+
+    # ── Load local security training data ──────────────────────────────
     local_data = []
     for jsonl_file in DATA_DIR.rglob("*.jsonl"):
         if jsonl_file.name in ("train.jsonl", "valid.jsonl"):
@@ -142,7 +174,6 @@ def prepare_data():
             for line in f:
                 try:
                     item = json.loads(line)
-                    # Convert instruction format to messages format
                     if "instruction" in item:
                         messages = [
                             {"role": "user", "content": item["instruction"] + ("\n" + item["input"] if item.get("input") else "")},
@@ -157,13 +188,15 @@ def prepare_data():
     if local_data:
         print(f"Loaded {len(local_data)} local security examples")
 
-    # Combine: security examples first (upsampled), then other examples
-    # Upsample security by 3x to emphasize security training
-    combined = security_examples * 3 + local_data * 5 + other_examples
+    # ── Combine with smart weighting ───────────────────────────────────
+    # Security examples 3x, agent examples 1x (already large), local 5x, other 1x
+    combined = (
+        security_examples * 3 +
+        agent_examples +
+        local_data * 5 +
+        other_examples
+    )
 
-    # Shuffle
-    import random
-    random.seed(42)
     random.shuffle(combined)
 
     # Split 90/10
@@ -182,8 +215,11 @@ def prepare_data():
         for item in valid_data:
             f.write(json.dumps(item) + "\n")
 
+    print(f"\n{'='*60}")
     print(f"✅ Training data: {len(train_data)} examples → {TRAIN_FILE}")
     print(f"✅ Validation data: {len(valid_data)} examples → {VALID_FILE}")
+    print(f"  Breakdown: {len(security_examples)*3} security + {len(agent_examples)} agentic + {len(local_data)*5} local + {len(other_examples)} other")
+    print(f"{'='*60}")
 
 
 def train():

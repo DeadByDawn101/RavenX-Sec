@@ -35,3 +35,5 @@ Thumbs.db
 # Secrets
 .env
 *.key
+data/train.jsonl
+data/valid.jsonl

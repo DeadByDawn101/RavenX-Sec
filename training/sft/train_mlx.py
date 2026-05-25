@@ -37,35 +37,36 @@ BASE_MODEL = "georgehenney/Qwen3-8B-heretic"
 GGUF_MODEL = "mradermacher/Qwen3-8B-heretic-i1-GGUF"
 MYTHOS_DATASET = "WithinUsAI/claude_mythos_distilled_25k"
 AGENT_DATASET = "WithinUsAI/AgentAngel_100k"
+AGENT_SPLITS = ["chat", "instruct", "qa", "reasoning", "thinking"]
 
 # Paths
 PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 TRAIN_FILE = DATA_DIR / "train.jsonl"
 VALID_FILE = DATA_DIR / "valid.jsonl"
-ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v03"
-FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v03"
+ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v04"
+FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v04"
 
 # Training hyperparameters (optimized for M4 Max 128GB)
-# v0.3: Proven conservative base from v0.2 + slightly more capacity
+# v0.4: Proven v0.3 base + AgentAngel 500K agentic data
 LORA_CONFIG = {
-    "num_layers": 8,           # Stable at 8 (proven in v0.2)
-    "rank": 32,                # Bump from 16 → 32 for more capacity
+    "num_layers": 8,           # Stable (proven in v0.2/v0.3)
+    "rank": 32,                # Proven in v0.3
     "alpha": 64,               # 2x rank
-    "dropout": 0.1,            # Regularization (proven in v0.2)
+    "dropout": 0.1,            # Regularization (proven)
     "scale": 10.0,             # LoRA scale
 }
 
 TRAIN_CONFIG = {
-    "learning_rate": 1e-5,     # Proven stable in v0.2
+    "learning_rate": 1e-5,     # Proven stable
     "batch_size": 4,
-    "iters": 750,              # More iters for larger dataset (was 500)
-    "val_batches": 25,         # Validation batches
-    "steps_per_report": 10,    # Report every N steps
-    "steps_per_eval": 100,     # Evaluate every N steps
-    "save_every": 150,         # Save checkpoints
-    "max_seq_length": 4096,    # Max sequence length
-    "grad_checkpoint": True,   # Gradient checkpointing for memory efficiency
+    "iters": 1000,             # More iters for much larger dataset
+    "val_batches": 25,
+    "steps_per_report": 10,
+    "steps_per_eval": 200,     # Eval less frequently (larger dataset)
+    "save_every": 200,         # Save checkpoints
+    "max_seq_length": 4096,
+    "grad_checkpoint": True,
 }
 
 
@@ -124,42 +125,50 @@ def prepare_data():
     print(f"  Security-relevant: {len(security_examples)}")
     print(f"  Other: {len(other_examples)}")
 
-    # ── Load AgentAngel dataset ────────────────────────────────────────
-    print(f"\n[2/2] Loading {AGENT_DATASET}...")
+    # ── Load AgentAngel dataset (each split separately) ──────────────
+    print(f"\n[2/2] Loading {AGENT_DATASET} (split by split)...")
     agent_examples = []
     try:
-        agent_ds = load_dataset(AGENT_DATASET, split="train")
-        print(f"Loaded {len(agent_ds)} AgentAngel examples")
+        for split_name in AGENT_SPLITS:
+            data_file = f"splits/agentangel_100k.{split_name}.jsonl"
+            print(f"  Loading {split_name}...", end=" ")
+            try:
+                split_ds = load_dataset(
+                    AGENT_DATASET,
+                    data_files=data_file,
+                    split="train"
+                )
+                count = 0
+                for item in split_ds:
+                    # Each split has different columns — extract messages flexibly
+                    messages = item.get("messages", [])
+                    if messages and len(messages) >= 2:
+                        # Ensure messages are proper dicts with role/content
+                        valid_msgs = []
+                        for m in messages:
+                            if isinstance(m, dict) and "role" in m and "content" in m:
+                                valid_msgs.append({"role": m["role"], "content": m["content"]})
+                        if len(valid_msgs) >= 2:
+                            agent_examples.append({"messages": valid_msgs})
+                            count += 1
+                            continue
 
-        for item in agent_ds:
-            # AgentAngel has multiple formats — handle each
-            messages = item.get("messages", [])
-            if messages and len(messages) >= 2:
-                agent_examples.append({"messages": messages})
+                    # Try instruction/output format
+                    instruction = item.get("instruction", "") or item.get("question", "") or item.get("prompt", "")
+                    output = item.get("output", "") or item.get("answer", "") or item.get("response", "")
+                    if instruction and output:
+                        agent_examples.append({"messages": [
+                            {"role": "user", "content": str(instruction)},
+                            {"role": "assistant", "content": str(output)}
+                        ]})
+                        count += 1
+
+                print(f"{count} examples")
+            except Exception as e:
+                print(f"failed: {e}")
                 continue
 
-            # Try instruction format
-            instruction = item.get("instruction", "")
-            output = item.get("output", "")
-            if instruction and output:
-                msgs = [
-                    {"role": "user", "content": instruction},
-                    {"role": "assistant", "content": output}
-                ]
-                agent_examples.append({"messages": msgs})
-                continue
-
-            # Try Q&A format
-            question = item.get("question", "")
-            answer = item.get("answer", "")
-            if question and answer:
-                msgs = [
-                    {"role": "user", "content": question},
-                    {"role": "assistant", "content": answer}
-                ]
-                agent_examples.append({"messages": msgs})
-
-        print(f"  Converted {len(agent_examples)} AgentAngel examples to chat format")
+        print(f"  Total AgentAngel examples: {len(agent_examples)}")
     except Exception as e:
         print(f"  Warning: Could not load AgentAngel: {e}")
         print(f"  Continuing with Mythos data only")

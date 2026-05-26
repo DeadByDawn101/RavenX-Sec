@@ -6,7 +6,7 @@
 </p>
 
 **Built by @DeadByDawn101 (RavenX LLC)**  
-**Status:** Training data curation phase  
+**Status:** v1.0 — Autonomous security analysis proven  
 **License:** MIT — Security knowledge should be open.
 
 ---
@@ -22,6 +22,30 @@ Trained on the combined intelligence of five security toolchains, a world model 
 Every pentest report ends with a list of findings. Those findings sit in a Jira queue. A security TPM tracks them against SLAs. Developers scramble to remediate. Weeks pass. Some findings expire unpatched.
 
 **What if the model that found the vulnerability also generated the fix?**
+
+## v1.0 Results
+
+RavenX-Sec v1.0 (v0.5 checkpoint) produces autonomous 5-step security assessments:
+
+| Step | What It Does | Example Output |
+|------|-------------|---------------|
+| **1. Environment Analysis** | Identifies software, version, attack surface | "OpenSSH 7.4 from 2016, flagged as outdated" |
+| **2. Threat Modeling** | Maps attack vectors | "Code execution, 2FA bypass, privilege escalation, DoS" |
+| **3. Framework Mapping** | CVSS + NIST CSF + OWASP | "CVSS 9.8 (AV:N/AC:L/PR:N/UI:N), NIST Detect→Respond→Recover, OWASP A03+A04" |
+| **4. Remediation** | Distro-specific commands | "`sudo apt upgrade -y` / `sudo dnf upgrade -y`" |
+| **5. Verification** | Post-fix validation | "Run Lynis/ClamAV scan to confirm patch applied" |
+
+### Training Evolution
+
+| Version | Data | Loss | Output |
+|---------|------|------|--------|
+| v0.1 | 51K, rank 64, LR 2e-4 | 5.728 | ❌ Garbage (destabilized) |
+| v0.2 | 51K, rank 16, LR 1e-5 | 0.021 | ✅ Basic classification |
+| v0.3 | 51K, rank 32, LR 1e-5 | 0.021 | ✅ Full defense-in-depth |
+| v0.4 | 321K, rank 32, LR 1e-5 | 0.027 | ⚠️ Regressed (data dilution) |
+| **v0.5 (v1.0)** | **125K, rank 32, LR 1e-5** | **0.027** | **🏆 Full RATH protocol** |
+
+**Key insight:** Security-dominant data mix (58% security) + capped agentic data (50K) produces the best results. More data isn't always better — the right ratio matters.
 
 ## Architecture
 

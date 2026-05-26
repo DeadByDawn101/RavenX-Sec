@@ -44,27 +44,27 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 TRAIN_FILE = DATA_DIR / "train.jsonl"
 VALID_FILE = DATA_DIR / "valid.jsonl"
-ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v04"
-FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v04"
+ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v05"
+FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v05"
 
 # Training hyperparameters (optimized for M4 Max 128GB)
-# v0.4: Proven v0.3 base + AgentAngel 500K agentic data
+# v0.5: Fix data balance — security 5x, AgentAngel capped at 50K
 LORA_CONFIG = {
-    "num_layers": 8,           # Stable (proven in v0.2/v0.3)
-    "rank": 32,                # Proven in v0.3
+    "num_layers": 8,           # Stable (proven)
+    "rank": 32,                # Proven in v0.3 (best output)
     "alpha": 64,               # 2x rank
-    "dropout": 0.1,            # Regularization (proven)
+    "dropout": 0.1,            # Regularization
     "scale": 10.0,             # LoRA scale
 }
 
 TRAIN_CONFIG = {
     "learning_rate": 1e-5,     # Proven stable
     "batch_size": 4,
-    "iters": 1000,             # More iters for much larger dataset
+    "iters": 1000,             # Full training
     "val_batches": 25,
     "steps_per_report": 10,
-    "steps_per_eval": 200,     # Eval less frequently (larger dataset)
-    "save_every": 200,         # Save checkpoints
+    "steps_per_eval": 200,
+    "save_every": 200,
     "max_seq_length": 4096,
     "grad_checkpoint": True,
 }
@@ -198,10 +198,20 @@ def prepare_data():
         print(f"Loaded {len(local_data)} local security examples")
 
     # ── Combine with smart weighting ───────────────────────────────────
-    # Security examples 3x, agent examples 1x (already large), local 5x, other 1x
+    # v0.5: Security dominance — v0.3 was best with security-heavy mix
+    # Cap AgentAngel to prevent diluting security signal
+    import random
+    random.seed(42)
+
+    agent_capped = agent_examples[:50000] if len(agent_examples) > 50000 else agent_examples
+    if len(agent_examples) > 50000:
+        random.shuffle(agent_examples)
+        agent_capped = agent_examples[:50000]
+        print(f"  AgentAngel capped: {len(agent_examples)} → {len(agent_capped)}")
+
     combined = (
-        security_examples * 3 +
-        agent_examples +
+        security_examples * 5 +     # 5x security (was 3x)
+        agent_capped +               # Capped at 50K (was uncapped 300K)
         local_data * 5 +
         other_examples
     )

@@ -53,6 +53,70 @@ def convert_to_messages(item: Dict) -> Dict:
         if len(valid) >= 2:
             return {"messages": valid}
 
+    # Trendyol format: system/user/assistant as top-level keys
+    if "system" in item and "user" in item and "assistant" in item:
+        system_content = str(item["system"])
+        user_content = str(item["user"])
+        assistant_content = str(item["assistant"])
+        if user_content and assistant_content:
+            msgs = []
+            if system_content:
+                msgs.append({"role": "system", "content": system_content})
+            msgs.append({"role": "user", "content": user_content})
+            msgs.append({"role": "assistant", "content": assistant_content})
+            return {"messages": msgs}
+
+    # CVE-SFT format: structured CVE fields → RATH instruction pair
+    if "cve_id" in item and "cvss_score" in item:
+        cve_id = item.get("cve_id", "")
+        cvss = item.get("cvss_score", "")
+        cvss_vec = item.get("cvss_vector", "")
+        cwe = item.get("cwe_id", "")
+        software = item.get("affected_software", "")
+        versions = item.get("affected_versions", "")
+        explanation = item.get("plain_explanation", "")
+        deep_dive = item.get("technical_deep_dive", "")
+        attack = item.get("attack_scenario", "")
+        remediation = item.get("remediation", "")
+        vuln_code = item.get("vulnerable_code_example", "")
+        exploit = item.get("exploit_poc", "")
+
+        user_prompt = f"Analyze {cve_id} affecting {software} {versions}. Provide RATH protocol assessment."
+        assistant_response = f"""**RATH STEP 1: IDENTIFY**
+- CVE: {cve_id}
+- Affected: {software} {versions}
+- CWE: {cwe}
+- Description: {explanation}
+
+**RATH STEP 2: ASSESS**
+- CVSS Score: {cvss}
+- CVSS Vector: {cvss_vec}
+- Technical Analysis: {deep_dive}
+
+**RATH STEP 3: THREAT**
+- Attack Scenario: {attack}
+{f'- Vulnerable Code: {vuln_code[:500]}' if vuln_code else ''}
+{f'- Exploit PoC: {exploit[:500]}' if exploit else ''}
+
+**RATH STEP 4: REMEDIATE**
+{remediation}"""
+
+        return {"messages": [
+            {"role": "system", "content": "You are RavenX-Sec. Follow the RATH protocol for every finding."},
+            {"role": "user", "content": user_prompt},
+            {"role": "assistant", "content": assistant_response}
+        ]}
+
+    # Rootkit7/pentest-redteam format: goal/target
+    if "goal" in item and "target" in item:
+        goal = str(item["goal"])
+        target = str(item["target"])
+        if goal and target and len(target) > 20:
+            return {"messages": [
+                {"role": "user", "content": goal},
+                {"role": "assistant", "content": target}
+            ]}
+
     # Try conversation format
     conversations = item.get("conversations", [])
     if conversations and len(conversations) >= 2:

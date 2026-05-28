@@ -160,3 +160,49 @@ evaluation:
     - "compliance"     # Framework mapping accuracy
   judge_model: "GLM-5.1"
   judge_prompt: "Evaluate the security finding for accuracy, completeness, and actionability."
+
+    # ── NEW: Comprehensive Security Training Datasets (v3.0) ────────────
+    security_instruction_tuning:
+      - name: "Trendyol/Trendyol-Cybersecurity-Instruction-Tuning-Dataset"
+        source: "huggingface"
+        notes: "Enterprise cybersecurity instruction tuning from Trendyol"
+
+      - name: "WNT3D/Ultimate-Offensive-Red-Team"
+        source: "huggingface"
+        notes: "Offensive red team techniques and procedures"
+
+      - name: "AYI-NEDJIMI/bug-bounty-pentest-en"
+        source: "huggingface"
+        notes: "Bug bounty and pentesting data in English"
+
+      - name: "auren-research/cve-sft-v5"
+        source: "huggingface"
+        notes: "CVE-specific SFT data, version 5"
+
+      - name: "theelderemo/pentesting-explanations"
+        source: "huggingface"
+        notes: "Pentesting technique explanations and walkthroughs"
+
+      - name: "Rootkit7/pentest-redteam-steering"
+        source: "huggingface"
+        notes: "Red team steering and pentest methodology"
+
+      - name: "cpagac/venomx-pentesting-harmful"
+        source: "huggingface"
+        notes: "Pentesting scenarios including advanced techniques"
+
+      - name: "SkywardNomad92/pentest-findings-v2"
+        source: "huggingface"
+        notes: "Pentest findings with classification and remediation"
+
+      - name: "acnimatic3722/kali-linux-pentesting-data"
+        source: "huggingface"
+        notes: "Kali Linux tool usage and pentesting workflows"
+
+      - name: "CJJones/Synthetic_PenTest_Reports"
+        source: "huggingface"
+        notes: "Synthetic penetration testing reports with findings"
+
+      - name: "nangyall/4-Security-Tools-Pentesting"
+        source: "huggingface"
+        notes: "Security tools usage for pentesting (nmap, burp, etc)"

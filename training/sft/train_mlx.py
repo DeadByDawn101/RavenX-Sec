@@ -44,14 +44,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 TRAIN_FILE = DATA_DIR / "train.jsonl"
 VALID_FILE = DATA_DIR / "valid.jsonl"
-ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v05"
-FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v05"
+ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v3.0"
+FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v3.0"
 
 # Training hyperparameters (optimized for M4 Max 128GB)
-# v0.5: Fix data balance — security 5x, AgentAngel capped at 50K
+# v3.0: 255K training examples — largest security corpus yet
 LORA_CONFIG = {
     "num_layers": 8,           # Stable (proven)
-    "rank": 32,                # Proven in v0.3 (best output)
+    "rank": 32,                # Proven in v0.3/v2.0
     "alpha": 64,               # 2x rank
     "dropout": 0.1,            # Regularization
     "scale": 10.0,             # LoRA scale
@@ -60,11 +60,11 @@ LORA_CONFIG = {
 TRAIN_CONFIG = {
     "learning_rate": 1e-5,     # Proven stable
     "batch_size": 4,
-    "iters": 1000,             # Full training
+    "iters": 1500,             # More iters for 255K dataset
     "val_batches": 25,
     "steps_per_report": 10,
-    "steps_per_eval": 200,
-    "save_every": 200,
+    "steps_per_eval": 300,     # Eval every 300 steps
+    "save_every": 300,         # Save checkpoints
     "max_seq_length": 4096,
     "grad_checkpoint": True,
 }

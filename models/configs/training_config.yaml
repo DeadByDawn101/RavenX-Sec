@@ -206,3 +206,10 @@ evaluation:
       - name: "nangyall/4-Security-Tools-Pentesting"
         source: "huggingface"
         notes: "Security tools usage for pentesting (nmap, burp, etc)"
+
+    # ── MCP Tools (for agent harness integration) ────────────────────
+    mcp_tools:
+      - name: "ChromeDevTools/chrome-devtools-mcp"
+        source: "github"
+        notes: "Browser automation for web app pentesting, scraping scan dashboards, interacting with target applications"
+        usage: "Security agent skill — web app recon, form fuzzing, DOM inspection, XSS testing via browser"

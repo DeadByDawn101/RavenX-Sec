@@ -64,3 +64,25 @@ Review this configuration for security issues against CIS Benchmarks:
 Security incident detected: {{alert}}
 Provide containment, eradication, and recovery steps.
 ```
+
+## MCP Tool Integration
+
+### Chrome DevTools MCP
+- **Repo:** ChromeDevTools/chrome-devtools-mcp
+- **Use Case:** Web application penetration testing via browser automation
+- **Capabilities:**
+  - Navigate to target web applications
+  - Inspect DOM for injection points
+  - Fuzz form fields for XSS/SQLi
+  - Scrape vulnerability scan dashboards (Nessus, Qualys)
+  - Screenshot evidence collection
+  - Monitor network requests for API key leaks
+  - Test authentication flows
+
+### Security MCP Tools (Planned)
+- nmap scan executor
+- nikto web scanner
+- nuclei template scanner
+- sqlmap injection tester
+- subfinder subdomain enumeration
+- ffuf directory fuzzing

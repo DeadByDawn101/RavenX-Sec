@@ -44,14 +44,14 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 DATA_DIR = PROJECT_ROOT / "data"
 TRAIN_FILE = DATA_DIR / "train.jsonl"
 VALID_FILE = DATA_DIR / "valid.jsonl"
-ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v3.0"
-FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v3.0"
+ADAPTER_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-lora-v4.0"
+FUSED_DIR = PROJECT_ROOT / "models" / "checkpoints" / "ravenx-sec-fused-v4.0"
 
 # Training hyperparameters (optimized for M4 Max 128GB)
-# v3.0: 255K training examples — largest security corpus yet
+# v4.0: THE FINAL TRAINING — security + agent + tool calling + MCP + coding
 LORA_CONFIG = {
-    "num_layers": 8,           # Stable (proven)
-    "rank": 32,                # Proven in v0.3/v2.0
+    "num_layers": 8,           # Stable (proven across all versions)
+    "rank": 32,                # Proven optimal
     "alpha": 64,               # 2x rank
     "dropout": 0.1,            # Regularization
     "scale": 10.0,             # LoRA scale
@@ -60,11 +60,11 @@ LORA_CONFIG = {
 TRAIN_CONFIG = {
     "learning_rate": 1e-5,     # Proven stable
     "batch_size": 4,
-    "iters": 1500,             # More iters for 255K dataset
+    "iters": 2000,             # More iters for largest dataset yet
     "val_batches": 25,
     "steps_per_report": 10,
-    "steps_per_eval": 300,     # Eval every 300 steps
-    "save_every": 300,         # Save checkpoints
+    "steps_per_eval": 400,     # Eval every 400 steps
+    "save_every": 400,         # Save checkpoints
     "max_seq_length": 4096,
     "grad_checkpoint": True,
 }

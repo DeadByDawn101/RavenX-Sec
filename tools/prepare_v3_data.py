@@ -14,6 +14,7 @@ Usage:
 import argparse
 import json
 import random
+import re
 from pathlib import Path
 from typing import List, Dict
 
@@ -156,8 +157,24 @@ def convert_to_messages(item: Dict) -> Dict:
             {"role": "assistant", "content": str(output)}
         ]}
 
-    # Try text format (for reports/explanations)
+    # Try text format — security tools query/tool pairs (Whoisjutanlee format)
+    # Format: "query text", "tool_name",
     text = item.get("text", item.get("content", ""))
+    if text and isinstance(text, str):
+        import re
+        # Match: "query", "tool",
+        match = re.match(r'"([^"]+)",\s*"(\w+)"', str(text))
+        if match:
+            query = match.group(1)
+            tool = match.group(2)
+            return {"messages": [
+                {"role": "user", "content": query},
+                {"role": "assistant", "content": f"For this task, use **{tool}**. Here's how:\n\n"
+                    f"The {tool} tool is the appropriate choice for this security assessment task. "
+                    f"Configure it with the specific parameters from your request and execute against the target."}
+            ]}
+
+    # Try text format (for reports/explanations — longer text)
     if text and len(str(text)) > 200:
         return {"messages": [
             {"role": "user", "content": "Analyze the following security content and provide your assessment:"},
@@ -286,26 +303,39 @@ def main():
     # ── 2b. Load special-format datasets ──────────────────────────────
     print(f"\n[Phase 2b] Loading special-format datasets...")
 
-    # Nanbeige/ToolMind — split is graph_syn_datasets, not train
-    print(f"\n  [+] Nanbeige/ToolMind (graph_syn_datasets)...")
+    # Nanbeige/ToolMind — download raw JSONL files (datasets lib can't handle Json type on Python 3.9)
+    print(f"\n  [+] Nanbeige/ToolMind (raw JSONL download)...")
     try:
-        ds = load_dataset("Nanbeige/ToolMind", split="graph_syn_datasets", streaming=True)
+        from huggingface_hub import hf_hub_download, HfApi
+        api_hf = HfApi()
+        tm_files = [f for f in api_hf.list_repo_files("Nanbeige/ToolMind", repo_type="dataset")
+                    if f.endswith('.jsonl')]
         tm_count = 0
-        for item in ds:
-            convos = item.get("conversations", [])
-            if convos and len(convos) >= 2:
-                msgs = []
-                for c in convos:
-                    role = c.get("role", "user")
-                    content = c.get("content", "")
-                    if content and role in ("user", "assistant", "system"):
-                        msgs.append({"role": role, "content": str(content)})
-                if len(msgs) >= 2:
-                    all_agent_tools.append({"messages": msgs})
-                    tm_count += 1
-            if tm_count >= 50000:
-                break
-        print(f"    → {tm_count} usable examples")
+        for tm_file in tm_files:
+            try:
+                path = hf_hub_download("Nanbeige/ToolMind", tm_file, repo_type="dataset")
+                with open(path) as f:
+                    for line in f:
+                        try:
+                            item = json.loads(line)
+                            convos = item.get("conversations", [])
+                            if convos and len(convos) >= 2:
+                                msgs = []
+                                for c in convos:
+                                    role = c.get("role", "user")
+                                    content = c.get("content", "")
+                                    if content and role in ("user", "assistant", "system"):
+                                        msgs.append({"role": role, "content": str(content)[:3000]})
+                                if len(msgs) >= 2:
+                                    all_agent_tools.append({"messages": msgs})
+                                    tm_count += 1
+                        except json.JSONDecodeError:
+                            continue
+                    if tm_count >= 50000:
+                        break
+            except Exception:
+                continue
+        print(f"    → {tm_count} usable examples from {len(tm_files)} files")
     except Exception as e:
         print(f"    FAILED: {e}")
 

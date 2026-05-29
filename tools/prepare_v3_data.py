@@ -36,12 +36,10 @@ SECURITY_DATASETS = [
     "Whoisjutanlee/4-Security-Tools-Pentesting",
 ]
 
-# NEW: 6 tool-calling, agent, coding, reasoning datasets (v4.0)
+# NEW: agent/tool/coding/reasoning datasets (v4.0)
+# Note: ToolMind, CoderForge, and mcp-servers have custom loaders in Phase 2b
 AGENT_TOOL_DATASETS = [
     "burtenshaw/agent-tools",
-    "Nanbeige/ToolMind",
-    "togethercomputer/CoderForge-Preview",
-    "automatelab/mcp-servers-tool-catalog",
     "Jackrong/Claude-opus-4.7-TraceInversion-5000x",
 ]
 
@@ -284,6 +282,90 @@ def main():
         examples = load_hf_dataset(ds_name, max_samples=50000)
         print(f"    → {len(examples)} usable examples")
         all_agent_tools.extend(examples)
+
+    # ── 2b. Load special-format datasets ──────────────────────────────
+    print(f"\n[Phase 2b] Loading special-format datasets...")
+
+    # Nanbeige/ToolMind — split is graph_syn_datasets, not train
+    print(f"\n  [+] Nanbeige/ToolMind (graph_syn_datasets)...")
+    try:
+        ds = load_dataset("Nanbeige/ToolMind", split="graph_syn_datasets", streaming=True)
+        tm_count = 0
+        for item in ds:
+            convos = item.get("conversations", [])
+            if convos and len(convos) >= 2:
+                msgs = []
+                for c in convos:
+                    role = c.get("role", "user")
+                    content = c.get("content", "")
+                    if content and role in ("user", "assistant", "system"):
+                        msgs.append({"role": role, "content": str(content)})
+                if len(msgs) >= 2:
+                    all_agent_tools.append({"messages": msgs})
+                    tm_count += 1
+            if tm_count >= 50000:
+                break
+        print(f"    → {tm_count} usable examples")
+    except Exception as e:
+        print(f"    FAILED: {e}")
+
+    # togethercomputer/CoderForge-Preview — config trajectories, split SWE_Smith
+    print(f"\n  [+] togethercomputer/CoderForge-Preview (trajectories/SWE_Smith)...")
+    try:
+        ds = load_dataset("togethercomputer/CoderForge-Preview", "trajectories",
+                         split="SWE_Smith", streaming=True)
+        cf_count = 0
+        for item in ds:
+            msgs_raw = item.get("messages", "")
+            if isinstance(msgs_raw, str):
+                import json as _json
+                try:
+                    msgs_parsed = _json.loads(msgs_raw)
+                except:
+                    continue
+            else:
+                msgs_parsed = msgs_raw
+
+            if isinstance(msgs_parsed, list) and len(msgs_parsed) >= 2:
+                msgs = []
+                for m in msgs_parsed:
+                    if isinstance(m, dict) and "content" in m:
+                        role = m.get("role", "user")
+                        content = str(m["content"])[:3000]
+                        if role in ("user", "assistant", "system") and content:
+                            msgs.append({"role": role, "content": content})
+                if len(msgs) >= 2:
+                    all_agent_tools.append({"messages": msgs})
+                    cf_count += 1
+            if cf_count >= 50000:
+                break
+        print(f"    → {cf_count} usable examples")
+    except Exception as e:
+        print(f"    FAILED: {e}")
+
+    # automatelab/mcp-servers-tool-catalog — parquet with MCP tool schemas
+    print(f"\n  [+] automatelab/mcp-servers-tool-catalog (parquet)...")
+    try:
+        import pandas as pd
+        from huggingface_hub import hf_hub_download
+        path = hf_hub_download("automatelab/mcp-servers-tool-catalog",
+                              "data/tools.parquet", repo_type="dataset")
+        df = pd.read_parquet(path)
+        mcp_count = 0
+        for _, row in df.iterrows():
+            server = row.get("server_name", "")
+            tool = row.get("tool_name", "")
+            desc = row.get("tool_description", "")
+            schema = row.get("input_schema", "")
+            if tool and desc:
+                all_agent_tools.append({"messages": [
+                    {"role": "user", "content": f"Describe the MCP tool '{tool}' from the '{server}' server. What does it do and what parameters does it accept?"},
+                    {"role": "assistant", "content": f"**MCP Tool: {tool}**\n\nServer: {server}\n\nDescription: {desc}\n\nInput Schema:\n```json\n{str(schema)[:1000]}\n```\n\nThis tool is part of the Model Context Protocol (MCP) ecosystem and can be called by AI agents to interact with external services."}
+                ]})
+                mcp_count += 1
+        print(f"    → {mcp_count} usable examples")
+    except Exception as e:
+        print(f"    FAILED: {e}")
 
     print(f"\n  Phase 2 total: {len(all_agent_tools)} agent/tool examples")
 

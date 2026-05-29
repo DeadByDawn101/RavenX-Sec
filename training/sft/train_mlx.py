@@ -59,13 +59,13 @@ LORA_CONFIG = {
 
 TRAIN_CONFIG = {
     "learning_rate": 1e-5,     # Proven stable
-    "batch_size": 4,
-    "iters": 2000,             # More iters for largest dataset yet
+    "batch_size": 2,           # Halved (4→2) for longer sequences
+    "iters": 2000,             # Full training run
     "val_batches": 25,
     "steps_per_report": 10,
     "steps_per_eval": 400,     # Eval every 400 steps
     "save_every": 400,         # Save checkpoints
-    "max_seq_length": 4096,
+    "max_seq_length": 8192,    # Doubled (4096→8192) — zero truncation
     "grad_checkpoint": True,
 }
 

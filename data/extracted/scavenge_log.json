@@ -1,0 +1,13 @@
+{
+  "timestamp": "2026-06-01T01:08:14.806371",
+  "target": "/home/claude/phantom",
+  "model": "sec",
+  "files_scanned": 615,
+  "files_converted": 89,
+  "examples_generated": 662,
+  "by_type": {
+    "markdown": 832,
+    "config": 9,
+    "data": 1
+  }
+}
